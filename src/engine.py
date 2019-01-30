@@ -1,4 +1,7 @@
 from enum import Enum
+from datetime import datetime
+from time import sleep
+
 class Player(Enum):
 	NONE=0
 	P1=1
@@ -15,6 +18,74 @@ def getWinner(grid):
 		if grid[0][i]==grid[1][i] and grid[1][i]==grid[2][i] and grid[1][i]!=Player.NONE:
 			return grid[1][i]
 	return Player.NONE
+
+class EventLoop:
+	
+	tickEventMax=10
+	tickDelayMax=1000
+	tickDelayMin=10
+	
+	def __init__(self):
+		self.events=[]
+		self.timeouts=[]
+		self.intervals=[]
+		self.tick=0
+	
+	def add(self, fn, *args):
+		self.events.insert(0, (fn, args))
+	def addImmediate(self, fn, *args):
+		self.events.append((fn, args))
+	
+	def addTimeout(self, fn, timeout, *args):
+		tpl=(datetime.now().timestamp()*1000+timeout, fn, args)
+		self.timeouts.append(tpl)
+		return tpl
+	def addInterval(self, fn, interval, *args):
+		tpl=[datetime.now().timestamp()*1000+interval, interval, fn, args]
+		self.intervals.append(tpl)
+		return tpl
+	
+	def clearTimeout(self, tpl):
+		if tpl in self.timeouts: self.timeouts.remove(tpl)
+	def clearInterval(self, tpl):
+		if tpl in self.intervals: self.intervals.remove(tpl)
+	
+	def isAlive(self):
+		return len(self.events) or len(self.timeouts) or len(self.intervals)
+	
+	def runTick(self):
+		now=datetime.now().timestamp()*1000
+		self.tick+=1
+		
+		rem=[]
+		for to in self.timeouts:
+			if to[0]<now:
+				to[1](*to[2])
+				rem.append(to)
+		for to in rem:
+			self.timeouts.remove(to)
+		
+		for it in self.intervals:
+			if it[0]<now:
+				it[2](*it[3])
+				it[0]+=it[1]
+		
+		n=self.__class__.tickEventMax
+		while n and len(self.events):
+			evt=self.events.pop()
+			evt[0](*evt[1])
+	
+	def run(self):
+		while self.isAlive():
+			self.runTick()
+			if len(self.events)==0 and self.isAlive():
+				now=datetime.now().timestamp()*1000
+				shortest=now+self.__class__.tickDelayMax
+				for to in self.timeouts:
+					if to[0]<shortest: shortest=to[0]
+				for it in self.intervals:
+					if it[0]<shortest: shortest=it[0]
+				if shortest-now>self.__class__.tickDelayMin: sleep((shortest-now)/1000)
 
 class Board:
 	def __init__(self):
