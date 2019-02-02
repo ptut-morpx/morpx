@@ -74,7 +74,7 @@ def drawSubWin(game, player, x, y):
 		color.bg('yellow')
 	for i in range(3):
 		for j in range(3):
-			cursor.set(i*2+x*y+1, j*2+y*6+1)
+			cursor.set(i*2+x*7+1, j*2+y*6+1)
 			color.fg('black')
 			p=game.getCell(x, y, i, j)
 			if p==Player.P1:
