@@ -100,7 +100,19 @@ def onChanged(game, x, y, state):
 	flush()
 
 def onEnd(game, player):
-	print(player.name, 'wins')
+	cursor.set(21, 2)
+	color.reset()
+	if player==Player.P1:
+		color.fg('blue')
+		write("P1 wins!")
+	elif player==Player.P2:
+		color.fg('yellow')
+		write("P2 wins!")
+	else:
+		write("It's a draw")
+	cursor.set(1, 18)
+	color.reset()
+	flush()
 
 def install(game):
 	game.addTrigger('reset', onReset)
