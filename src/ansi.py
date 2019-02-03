@@ -10,27 +10,23 @@ esc=chr(27)+'['
 
 class cursor:
 	@staticmethod
-	def set(x, y):
+	def set(x, y=None):
 		if y!=None:
 			write(esc+str(int(y))+';'+str(int(x))+'H')
 		else:
 			write(esc+str(int(x))+'G')
 	
 	@staticmethod
-	def up(n):
-		if n==None: n=1
+	def up(n=1):
 		write(esc+str(int(n))+'A')
 	@staticmethod
-	def down(n):
-		if n==None: n=1
+	def down(n=1):
 		write(esc+str(int(n))+'B')
 	@staticmethod
-	def left(n):
-		if n==None: n=1
+	def left(n=1):
 		write(esc+str(int(n))+'D')
 	@staticmethod
-	def right(n):
-		if n==None: n=1
+	def right(n=1):
 		write(esc+str(int(n))+'C')
 	
 	@staticmethod
@@ -48,11 +44,15 @@ class cursor:
 
 class screen:
 	@staticmethod
-	def clear():
-		write(esc+'2J'+esc+'1;1H')
+	def clear(mode=2):
+		write(esc+str(mode)+'J')
+		if mode==2 or mode==3:
+			write(esc+'1;1H')
 	@staticmethod
-	def clearLine():
-		write(esc+'2K'+esc+'1G')
+	def clearLine(mode=2):
+		write(esc+str(mode)+'K')
+		if mode==2:
+			write(esc+'1G')
 
 class color(Enum):
 	BLACK=0

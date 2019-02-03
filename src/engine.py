@@ -2,25 +2,17 @@ from enum import Enum
 from datetime import datetime
 from time import sleep
 
-class Player(Enum):
+class State(Enum):
+	FULL=-1
 	NONE=0
 	P1=1
 	P2=2
 
-def getWinner(grid):
-	if grid[0][0]==grid[1][1] and grid[1][1]==grid[2][2] and grid[1][1]!=Player.NONE:
-		return grid[1][1]
-	if grid[2][0]==grid[1][1] and grid[1][1]==grid[0][2] and grid[1][1]!=Player.NONE:
-		return grid[1][1]
-	for i in range(3):
-		if grid[i][0]==grid[i][1] and grid[i][1]==grid[i][2] and grid[i][1]!=Player.NONE:
-			return grid[i][1]
-		if grid[0][i]==grid[1][i] and grid[1][i]==grid[2][i] and grid[1][i]!=Player.NONE:
-			return grid[1][i]
-	return Player.NONE
+class Player:
+	P1=State.P1
+	P2=State.P2
 
 class EventLoop:
-	
 	tickEventMax=10
 	tickDelayMax=1000
 	tickDelayMin=10
@@ -89,43 +81,109 @@ class EventLoop:
 
 class Board:
 	def __init__(self):
-		self.grids=[]
-		for i in range(3):
-			self.grids.append([])
-			for j in range(3):
-				self.grids[i].append([])
-				for k in range(3):
-					self.grids[i][j].append([Player.NONE, Player.NONE, Player.NONE])
-	
-	def get(self, x1, y1, x2, y2):
-		return self.grids[x1][y1][x2][y2]
-	def set(self, x1, y1, x2, y2, val):
-		self.grids[x1][y1][x2][y2]=val
+		self.cells=list(range(81))
+		self.grid=[State.NONE, State.NONE, State.NONE, State.NONE, State.NONE, State.NONE, State.NONE, State.NONE, State.NONE]
+		self.state=State.NONE
+		for i in range(81):
+			self.cells[i]=State.NONE
 	
 	def reset(self):
+		"""
+		board full reset
+		"""
+		for i in range(9):
+			self.grid[i]=State.NONE
+		for i in range(81):
+			self.cells[i]=State.NONE
+		self.state=State.NONE
+	
+	@staticmethod
+	def __getxy(x1, y1, x2, y2):
+		"""
+		return the array index for (x1, y1, x2, y2) coordinates
+		"""
+		return x1*27+y1*9+x2*3+y2
+	@staticmethod
+	def __getxyB(x, y):
+		"""
+		return the array index for (x, y) coordinates
+		"""
+		return x*3+y
+	
+	def get(self, x1, y1, x2, y2):
+		"""
+		cell value getter
+		"""
+		return self.cells[Board.__getxy(x1, y1, x2, y2)]
+	
+	def getB(self, x, y):
+		"""
+		grid value getter
+		"""
+		return self.grid[Board.__getxyB(x, y)]
+	
+	def set(self, x1, y1, x2, y2, player):
+		"""
+		cell value setter
+		also automatically updates grid
+		returns True if state has changed
+		"""
+		self.cells[Board.__getxy(x1, y1, x2, y2)]=player
+		
+		# detect sub-wins
+		subWin=False
+		if self.get(x1, y1, 0, y2)==self.get(x1, y1, 1, y2) and self.get(x1, y1, 1, y2)==self.get(x1, y1, 2, y2):
+			# rows
+			self.grid[Board.__getxyB(x1, y1)]=player
+			subWin=True
+		elif self.get(x1, y1, x2, 0)==self.get(x1, y1, x2, 1) and self.get(x1, y1, x2, 1)==self.get(x1, y1, x2, 2):
+			# cols
+			self.grid[Board.__getxyB(x1, y1)]=player
+			subWin=True
+		elif x2==y2 and self.get(x1, y1, 0, 0)==self.get(x1, y1, 1, 1) and self.get(x1, y1, 1, 1)==self.get(x1, y1, 2, 2):
+			# main diagonal
+			self.grid[Board.__getxyB(x1, y1)]=player
+			subWin=True
+		elif x2==2-y2 and self.get(x1, y1, 0, 2)==self.get(x1, y1, 1, 1) and self.get(x1, y1, 1, 1)==self.get(x1, y1, 2, 0):
+			# secondary diagonal
+			self.grid[Board.__getxyB(x1, y1)]=player
+			subWin=True
+		
+		# detect full grid
+		full=True
 		for i in range(3):
 			for j in range(3):
-				for k in range(3):
-					for l in range(3):
-						self.grids[i][j][k][l]=Player.NONE
-	
-	def isFull(self, x, y):
-		for row in self.grids[x][y]:
-			for cell in row:
-				if cell==Player.NONE:
-					return False
-		return True
-	
-	def subWinner(self, x, y):
-		return getWinner(self.grids[x][y])
-	def winner(self):
-		grid=[]
-		for i in range(3):
-			grid.append([0,0,0])
-			for j in range(3):
-				grid[i][j]=self.subWinner(i, j)
-		return getWinner(grid)
-
+				if self.get(x1, y1, i, j)==State.NONE:
+					full=False
+		if full and not subWin:
+			self.grid[Board.__getxyB(x1, y1)]=State.FULL
+		
+		# detect wins
+		if subWin:
+			if self.getB(x1, 0)==self.getB(x1, 1) and self.getB(x1, 1)==self.getB(x1, 2):
+				# rows
+				self.state=player
+			elif self.getB(0, y1)==self.getB(1, y1) and self.getB(1, y1)==self.getB(2, y1):
+				# cols
+				self.state=player
+			elif x1==y1 and self.getB(0, 0)==self.getB(1, 1) and self.getB(1, 1)==self.getB(2, 2):
+				# main diagonal
+				self.state=player
+			elif x1==2-y1 and self.getB(0, 2)==self.getB(1, 1) and self.getB(1, 1)==self.getB(2, 0):
+				# secondary diagonal
+				self.state=player
+		
+		# detect full board
+		if full:
+			fullBoard=True
+			for i in range(9):
+				if self.grid[i]==State.NONE:
+					fullBoard=False
+			if fullBoard and self.state==State.NONE:
+				self.state=State.FULL
+		
+		# return True if the state of the board changed
+		return subWin or full
 
 class Game:
 	def __init__(self):
@@ -133,11 +191,7 @@ class Game:
 		self.turn=0
 		self.player=Player.P1
 		self.last=None
-		
-		self.cellTriggers=[]
-		self.subWinnerTriggers=[]
-		self.winnerTriggers=[]
-		self.resetTriggers=[]
+		self.triggers={}
 	
 	def reset(self):
 		self.board.reset()
@@ -145,45 +199,50 @@ class Game:
 		self.player=Player.P1
 		self.last=None
 		
-		for trigger in self.resetTriggers:
-			trigger(self)
+		self.__trigger('reset')
+		self.__trigger('turn', self.player)
 	
-	def addCellTrigger(self, trigger):
-		if not trigger in self.cellTriggers:
-			self.cellTriggers.append(trigger)
-	def addSubWinnerTrigger(self, trigger):
-		if not trigger in self.subWinnerTriggers:
-			self.subWinnerTriggers.append(trigger)
-	def addWinnerTrigger(self, trigger):
-		if not trigger in self.winnerTriggers:
-			self.winnerTriggers.append(trigger)
-	def addResetTrigger(self, trigger):
-		if not trigger in self.resetTriggers:
-			self.resetTriggers.append(trigger)
+	def __trigger(self, name, *args):
+		if name in self.triggers:
+			for fn in self.triggers[name]:
+				fn(self, *args)
+	
+	def addTrigger(self, name, fn):
+		if name not in self.triggers:
+			self.triggers[name]=[]
+		self.triggers[name].append(fn)
+	
+	def nextGrid(self):
+		# you can play anywhere if you're either the first to play or the target grid is full or won
+		if (not self.last) or self.board.getB(self.last[0], self.last[1])!=State.NONE:
+			return None
+		return self.last
 	
 	def getCell(self, x1, y1, x2, y2):
 		return self.board.get(x1, y1, x2, y2)
 	
 	def play(self, player, x1, y1, x2, y2):
+		# sanity checks
 		if self.player!=player:
 			raise ValueError('Attempt to play when it\'s not your turn')
-		if self.board.get(x1, y1, x2, y2)!=Player.NONE:
+		if self.board.get(x1, y1, x2, y2)!=State.NONE:
 			raise ValueError('Attempt to play in an already used cell')
-		if self.last and (self.board.subWinner(self.last[0], self.last[1])!=Player.NONE or self.board.isFull(self.last[0], self.last[1])) and (x1!=self.last[0] or y1!=self.last[1]):
-			raise ValueError('Attempt to play somewhere not allowed')
-		self.board.set(x1, y1, x2, y2, player)
+		if self.board.getB(x1, y1)!=State.NONE:
+			raise ValueError('Attempt to play in an unreachable grid')
+		next=self.nextGrid()
+		if next and (x1!=next[0] or y1!=next[1]):
+			raise ValueError('Attempt to play outside the allowed cell')
+		
+		changed=self.board.set(x1, y1, x2, y2, player)
 		self.turn+=1
 		self.player=(player==Player.P1) and Player.P2 or Player.P1
+		self.last=(x2, y2)
 		
-		for trigger in self.cellTriggers:
-			trigger(self, player, x1, y1, x2, y2)
+		self.__trigger('cell', x1, y1, x2, y2, player)
 		
-		sw=self.board.subWinner(x1, y1)
-		if sw!=Player.NONE:
-			for trigger in self.subWinnerTriggers:
-				trigger(self, sw, x1, y1)
-				
-			w=self.board.winner()
-			if w!=Player.NONE:
-				for trigger in self.winnerTriggers:
-					trigger(self, w)
+		if changed:
+			self.__trigger('changed', x1, y1, self.board.getB(x1, y1))
+			if self.board.state!=State.NONE:
+				self.__trigger('end', self.board.state)
+		
+		self.__trigger('turn', self.player)
