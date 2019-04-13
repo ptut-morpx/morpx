@@ -9,7 +9,7 @@ game.reset()
 
 while True:
 	cursor.set(1, 18)
-	cursor.save();
+	cursor.save()
 	for i in range(5):
 		screen.clearLine()
 		cursor.down(1)
