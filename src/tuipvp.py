@@ -16,8 +16,8 @@ while True:
 	cursor.restore()
 	print("at {} to play".format(game.player.name))
 	x1 = int(input("x1= "))-1
-	y1 = int(input("y1= "))-1 #will be optimised later once the engine is finished
-	x2 = int(input("x2= "))-1 #atm we'll alwway enter x1 and y1 even if not needed
+	y1 = int(input("y1= "))-1 # will be optimised later once the engine is finished
+	x2 = int(input("x2= "))-1 # atm we'll always enter x1 and y1 even if not needed
 	y2 = int(input("y2= "))-1
 
 	game.play(game.player, x1, y1, x2, y2)
