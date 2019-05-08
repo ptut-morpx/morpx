@@ -1,0 +1,4 @@
+[submodule "minmax"]
+	path = minmax
+	url = https://github.com/ptut-morpx/minmax.git
+	branch = master

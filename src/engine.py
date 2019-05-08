@@ -80,12 +80,17 @@ class EventLoop:
 				if shortest-now>self.__class__.tickDelayMin: sleep((shortest-now)/1000)
 
 class Board:
-	def __init__(self):
-		self.cells=list(range(81))
-		self.grid=[State.NONE, State.NONE, State.NONE, State.NONE, State.NONE, State.NONE, State.NONE, State.NONE, State.NONE]
-		self.state=State.NONE
-		for i in range(81):
-			self.cells[i]=State.NONE
+	def __init__(self, copy=None):
+		if copy:
+			self.cells=copy.cells.copy()
+			self.grid=copy.grid.copy()
+			self.state=copy.state
+		else:
+			self.cells=list(range(81))
+			self.grid=[State.NONE, State.NONE, State.NONE, State.NONE, State.NONE, State.NONE, State.NONE, State.NONE, State.NONE]
+			self.state=State.NONE
+			for i in range(81):
+				self.cells[i]=State.NONE
 	
 	def reset(self):
 		"""
@@ -186,12 +191,30 @@ class Board:
 		return subWin or full
 
 class Game:
-	def __init__(self):
-		self.board=Board()
-		self.turn=0
-		self.player=Player.P1
-		self.last=None
-		self.triggers={}
+	def __init__(self, copy=None):
+		if copy:
+			self.board=Board(copy.board)
+			self.turn=copy.turn
+			self.player=copy.player
+			self.last=copy.last
+			self.triggers={}
+		else:
+			self.board=Board()
+			self.turn=0
+			self.player=Player.P1
+			self.last=None
+			self.triggers={}
+	
+	def getPlayer(self):
+		return self.player==Player.P1 and 1 or -1
+	
+	def getStatus(self):
+		if self.board.state==Player.P1:
+			return 1
+		elif self.board.state==Player.P2:
+			return -1
+		else:
+			return -1
 	
 	def reset(self):
 		self.board.reset()
@@ -221,6 +244,18 @@ class Game:
 	def getCell(self, x1, y1, x2, y2):
 		return self.board.get(x1, y1, x2, y2)
 	
+	def canPlay(self, player, x1, y1, x2, y2):
+		if self.player!=player:
+			return False
+		if self.board.get(x1, y1, x2, y2)!=State.NONE:
+			return False
+		if self.board.getB(x1, y1)!=State.NONE:
+			return False
+		next=self.nextGrid()
+		if next and (x1!=next[0] or y1!=next[1]):
+			return False
+		return True
+	
 	def play(self, player, x1, y1, x2, y2):
 		# sanity checks
 		if self.player!=player:
@@ -246,3 +281,116 @@ class Game:
 				self.__trigger('end', self.board.state)
 		
 		self.__trigger('turn', self.player)
+	
+	def getMoves(self):
+		if self.board.state!=State.NONE:
+			return []
+		moves=[]
+		n=[0, 1, 2]
+		for x1 in n:
+			for y1 in n:
+				for x2 in n:
+					for y2 in n:
+						if self.canPlay(self.player, x1, y1, x2, y2):
+							moves.append((self.player, x1, y1, x2, y2))
+		return moves
+	
+	def playClone(self, player, x1, y1, x2, y2):
+		copy=Game(self)
+		copy.play(player, x1, y1, x2, y2)
+		return copy
+	
+	def getScore(self, coef):
+		# convert player to usable value
+		def playerToVal(player):
+			if self.player==Player.P1:
+				return player==Player.P1 and 1 or -1
+			else:
+				return player==Player.P2 and 1 or -1
+		
+		# count P1's and P2's in a line
+		def count(a, b, c):
+			(x, y)=(0, 0)
+			if a==Player.P1:
+				x+=1
+			elif b==Player.P2:
+				y+=1
+			if b==Player.P1:
+				x+=1
+			elif b==Player.P2:
+				y+=1
+			if c==Player.P1:
+				x+=1
+			elif c==Player.P2:
+				y+=1
+			return (x, y)
+		
+		# count open 2-lines
+		def count2Lines():
+			def getPoints(a, b, c):
+				(x, y)=count(a, b, c)
+				if x==2 and y==0:
+					return self.player==Player.P1 and 1 or -1
+				elif y==2 and x==0:
+					return self.player==Player.P1 and -1 or 1
+				else:
+					return 0
+			
+			for x1 in range(3):
+				for y1 in range(3):
+					total=0
+					for a in range(3):
+						total+=getPoints(self.board.get(x1, y1, a, 0), self.board.get(x1, y1, a, 1), self.board.get(x1, y1, a, 2))
+						total+=getPoints(self.board.get(x1, y1, 0, a), self.board.get(x1, y1, 1, a), self.board.get(x1, y1, 2, a))
+					total+=getPoints(self.board.get(x1, y1, 0, 0), self.board.get(x1, y1, 1, 1), self.board.get(x1, y1, 2, 2))
+					total+=getPoints(self.board.get(x1, y1, 0, 2), self.board.get(x1, y1, 1, 1), self.board.get(x1, y1, 2, 0))
+			return total
+		
+		# count big cells
+		def countBigCells():
+			total=0
+			for x in range(3):
+				for y in range(3):
+					total+=playerToVal(self.board.getB(x, y))
+			return total
+		
+		# count open 2-lines of big cells
+		def count2LinesB():
+			def getPoints(a, b, c):
+				(x, y)=count(a, b, c)
+				if x==2 and y==0:
+					return self.player==Player.P1 and 1 or -1
+				elif y==2 and x==0:
+					return self.player==Player.P1 and -1 or 1
+				else:
+					return 0
+			
+			total=0
+			for a in range(3):
+				total+=getPoints(self.board.getB(a, 0), self.board.getB(a, 1), self.board.getB(a, 2))
+				total+=getPoints(self.board.getB(0, a), self.board.getB(1, a), self.board.getB(2, a))
+			total+=getPoints(self.board.getB(0, 0), self.board.getB(1, 1), self.board.getB(2, 2))
+			total+=getPoints(self.board.getB(0, 2), self.board.getB(1, 1), self.board.getB(2, 0))
+			return total
+		
+		# count controlled cells
+		def countControlledCells():
+			total=0
+			for x1 in range(3):
+				for y1 in range(3):
+					if self.board.getB(x1, y1)==State.NONE:
+						for x2 in range(3):
+							for y2 in range(3):
+								total+=playerToVal(self.board.get(x1, y1, x2, y2))
+			return total
+		
+		# return immediately if game has ended
+		if self.board.state!=State.NONE:
+			return playerToVal(self.board.state)*1000000
+		
+		score=0
+		score+=coef[0]*count2Lines()
+		score+=coef[1]*count2LinesB()
+		score+=coef[2]*countBigCells()
+		score+=coef[3]*countControlledCells()
+		return score

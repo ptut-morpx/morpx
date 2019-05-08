@@ -1,2 +1,2 @@
 #!/bin/sh
-env PYTHONPATH=../src python3 $1.py
+env PYTHONPATH="../src:../minmax" python3 $1.py
