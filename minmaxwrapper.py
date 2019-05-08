@@ -1,5 +1,5 @@
 from engine import Player, Game, State
-from minmax import Minmax
+from minmax.minmax import Minmax
 
 def install(game, boi, depth=3, weights=[1, 1, 1, 1]):
 	finished=False
