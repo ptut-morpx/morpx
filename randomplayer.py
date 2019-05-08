@@ -9,7 +9,9 @@ def install(game, boi):
 	
 	def onTurn(game, player):
 		if player==boi and not finished:
-			game.play(*choice(game.getMoves()))
+			moves=game.getMoves()
+			if len(moves):
+				game.play(*choice())
 	
 	game.addTrigger('end', onEnd)
 	game.addTrigger('turn', onTurn)
