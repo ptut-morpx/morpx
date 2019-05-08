@@ -25,3 +25,5 @@ class Morpx:
 			self.results=self.even and 2 or 1
 		else:
 			self.results=0
+		
+		self.even=not self.even
