@@ -303,10 +303,10 @@ class Game:
 	def getScore(self, coef):
 		# convert player to usable value
 		def playerToVal(player):
-			if self.player==Player.P1:
-				return player==Player.P1 and 1 or -1
+			if player==Player.P1:
+				return 1
 			else:
-				return player==Player.P2 and 1 or -1
+				return -1
 		
 		# count P1's and P2's in a line
 		def count(a, b, c):
@@ -330,9 +330,9 @@ class Game:
 			def getPoints(a, b, c):
 				(x, y)=count(a, b, c)
 				if x==2 and y==0:
-					return self.player==Player.P1 and 1 or -1
+					return 1
 				elif y==2 and x==0:
-					return self.player==Player.P1 and -1 or 1
+					return -1
 				else:
 					return 0
 			
@@ -359,9 +359,9 @@ class Game:
 			def getPoints(a, b, c):
 				(x, y)=count(a, b, c)
 				if x==2 and y==0:
-					return self.player==Player.P1 and 1 or -1
+					return 1
 				elif y==2 and x==0:
-					return self.player==Player.P1 and -1 or 1
+					return -1
 				else:
 					return 0
 			
