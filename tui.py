@@ -1,5 +1,9 @@
 from engine import Player, Game, State
 from ansi import cursor, screen, color, write, flush
+from sys import stdin
+read=stdin.read
+import termios
+import atexit
 
 #BEGIN drawing functions
 
@@ -115,8 +119,89 @@ def onEnd(game, player):
 	flush()
 
 def install(game):
+	cursor.off()
 	game.addTrigger('reset', onReset)
 	game.addTrigger('turn', onTurn)
 	game.addTrigger('cell', onCell)
 	game.addTrigger('changed', onChanged)
+	game.addTrigger('end', onEnd)
+
+def installPlayer(game, boi):
+	fd=stdin.fileno()
+	
+	old=termios.tcgetattr(fd)
+	atexit.register(termios.tcsetattr, fd, termios.TCSANOW, old)
+	
+	new=termios.tcgetattr(fd)
+	new[3]&=~(termios.ECHO|termios.ICANON)
+	termios.tcsetattr(fd, termios.TCSANOW, new)
+	
+	finished=False
+	
+	def readAction():
+		while True:
+			byte=read(1)
+			if byte=='\n':
+				return 'ok'
+			elif byte=='\x1b':
+				if read(1)=='[':
+					byte=read(1)
+					if byte=='D':
+						return 'left'
+					elif byte=='C':
+						return 'right'
+					elif byte=='A':
+						return 'up'
+					elif byte=='B':
+						return 'down'
+	
+	def onEnd(game, status):
+		finished=True
+	
+	def onPlayerTurn(game, player):
+		if player==boi and not finished:
+			(x1, y1, x2, y2)=(0, 0, 0, 0)
+			cursor.on()
+			while True:
+				cursor.set(x2*2+x1*7+1, y2*2+y1*6+1)
+				flush()
+				action=readAction()
+				if action=='ok':
+					try:
+						game.play(boi, x1, y1, x2, y2)
+						break
+					except ValueError:
+						pass
+				elif action=='left':
+					x2-=1
+					if x2<0:
+						x2=2
+						x1-=1
+						if x1<0:
+							x1=2
+				elif action=='right':
+					x2+=1
+					if x2>=3:
+						x2=0
+						x1+=1
+						if x1>=3:
+							x1=0
+				elif action=='up':
+					y2-=1
+					if y2<0:
+						y2=2
+						y1-=1
+						if y1<0:
+							y1=2
+				elif action=='down':
+					y2+=1
+					if y2>=3:
+						y2=0
+						y1+=1
+						if y1>=3:
+							y1=0
+			cursot.off()
+			flush()
+	
+	game.addTrigger('turn', onPlayerTurn)
 	game.addTrigger('end', onEnd)
