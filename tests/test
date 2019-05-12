@@ -1,2 +1,0 @@
-#!/bin/sh
-env PYTHONPATH=".." python3 $1.py
