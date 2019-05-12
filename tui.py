@@ -168,10 +168,13 @@ def installPlayer(game, boi):
 				action=readAction()
 				if action=='ok':
 					try:
+						cursor.off()
+						flush()
 						game.play(boi, x1, y1, x2, y2)
 						break
 					except ValueError:
-						pass
+						cursor.on()
+						flush()
 				elif action=='left':
 					x2-=1
 					if x2<0:
@@ -200,8 +203,6 @@ def installPlayer(game, boi):
 						y1+=1
 						if y1>=3:
 							y1=0
-			cursot.off()
-			flush()
 	
 	game.addTrigger('turn', onPlayerTurn)
 	game.addTrigger('end', onEnd)
