@@ -6,7 +6,7 @@ import minmaxwrapper
 depth=int(input("Minmax depth: "))
 weights=[0, 0, 0, 0]
 for i in range(4):
-	weights[i]=int(input("Weight #{}: ".format(i)))
+	weights[i]=float(input("Weight #{}: ".format(i)))
 
 game=Game()
 tui.install(game)
