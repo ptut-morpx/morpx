@@ -7,7 +7,7 @@ import sys
 # read CLI arguments
 player=sys.argv[1]=='P1' and Player.P1 or Player.P2
 depth=int(sys.argv[2])
-weights=[int(sys.argv[i+3]) for i in range(4)]
+weights=[float(sys.argv[i+3]) for i in range(4)]
 
 # print XYXY coordinates of played move
 def cellListener(game, x1, y1, x2, y2, state):
